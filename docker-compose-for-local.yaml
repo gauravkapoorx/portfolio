@@ -1,0 +1,63 @@
+version: '2.4'
+
+services:
+
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - './data:/data/db'
+    build:
+      context: seller-app
+      dockerfile: sellerApiDocker
+    restart: "always"
+    environment:
+      FIREBASE_SERVICE_ACCOUNT_JSON_PATH: lib/config/firebase-service-account.json
+      SELLER_SERVER_URL: http://seller:3019
+      NODE_ENV: production
+      STRAPI_API_TOKEN: ${STRAPI_API_TOKEN}
+      BPP_PRIVATE_KEY: ${BPP_PRIVATE_KEY}
+      BPP_PUBLIC_KEY: ${BPP_PUBLIC_KEY}
+      BPP_UNIQUE_KEY_ID: ${BPP_UNIQUE_KEY_ID}
+      BPP_ID: ${BPP_ID}
+      BPP_URI: ${BPP_URI}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME_SELLER_CLIENT: ${CLIENT_PG_DATABASE}
+      DATABASE_USERNAME: ${CLIENT_PG_USER}
+      DATABASE_PASSWORD: ${CLIENT_PG_PASSWORD}
+      LOGISTICS_DELIVERY_TYPE: ${LOGISTICS_DELIVERY_TYPE}
+      LOGISTICS_BAP_ID: ${LOGISTICS_BAP_ID}
+    volumes:
+      - ./app:/srv/app
+    ports:
+      - '3001:3001'
+    depends_on:
+      - seller
+      - postgres
+
+  nginx:
+    build:
+      context: seller-app-frontend
+      dockerfile: DockerfileWithoutSSL
+      args:
+        REACT_APP_BASE_URL: ${REACT_APP_BASE_URL}
+        REACT_APP_FIREBASE_API_KEY: ${REACT_APP_FIREBASE_API_KEY}
+        REACT_APP_FIREBASE_AUTH_DOMAIN: ${REACT_APP_FIREBASE_AUTH_DOMAIN}
+        REACT_APP_SELLER_BACKEND_URL: ${REACT_APP_SELLER_BACKEND_URL}
+    restart: "always"
+    environment:
+      REACT_APP_BASE_URL: ${REACT_APP_BASE_URL}
+      REACT_APP_FIREBASE_API_KEY: ${REACT_APP_FIREBASE_API_KEY}
+      REACT_APP_FIREBASE_AUTH_DOMAIN: ${REACT_APP_FIREBASE_AUTH_DOMAIN}
+      REACT_APP_BUYER_BACKEND_URL: ${REACT_APP_BUYER_BACKEND_URL}
+      REACT_APP_SELLER_BACKEND_URL: ${REACT_APP_SELLER_BACKEND_URL}
+    depends_on:
+      - seller
+      - bpp-protocol-webserver
+      - seller-client
+    ports:
+      - "80:80"
+      - "443:443"
